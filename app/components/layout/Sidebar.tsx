@@ -15,8 +15,10 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-72 border-r border-white/10 bg-black/20 backdrop-blur-xl md:flex md:flex-col">
-      <div className="border-b border-white/10 px-6 py-7">
+    <aside className="hidden w-72 border-r border-slate-800 bg-[#020617] md:flex md:flex-col">
+      
+      {/* Logo Section */}
+      <div className="border-b border-slate-800 px-6 py-7">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Meetrix
         </h1>
@@ -25,6 +27,7 @@ export default function Sidebar() {
         </p>
       </div>
 
+      {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-3 p-4">
         {links.map((link) => {
           const Icon = link.icon;
@@ -35,10 +38,10 @@ export default function Sidebar() {
               key={link.name}
               href={link.href}
               className={clsx(
-                "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
+                "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all",
                 active
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/20"
+                  : "text-slate-400 hover:bg-[#0B1220] hover:text-white"
               )}
             >
               <Icon size={18} />

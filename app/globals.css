@@ -1,22 +1,112 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b1120;
-  --foreground: #f8fafc;
+  --background: #020617;
+  --foreground: #e5e7eb;
+  --card: #0b1220;
+  --card-soft: #111827;
+  --card-border: rgba(148, 163, 184, 0.12);
+  --muted: #94a3b8;
+  --accent: #b0a5c7;
+  --accent-soft: rgba(139, 92, 246, 0.12);
+  --success: #22c55e;
+  --danger: #ef4444;
 }
 
-html,
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: radial-gradient(circle at top left, #13203d 0%, #0b1120 45%, #050814 100%);
+  background-color: #020617 !important;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  min-height: 100%;
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  background-attachment: fixed;
+/* Selection */
+::selection {
+  background: rgba(139, 92, 246, 0.35);
+  color: white;
 }
 
-* {
-  box-sizing: border-box;
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+  border: 2px solid #020617;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #506487;
+}
+
+/* Inputs / textarea / select */
+input,
+textarea,
+select {
+  color: #f1f5f9;
+  background-color: #19233b !important;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  transition: all 0.2s ease;
+  border-radius: 14px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: rgba(163, 141, 214, 0.45);
+  box-shadow: 0 0 0 3px rgba(179, 159, 224, 0.12);
+}
+
+/* Buttons */
+button {
+  transition: all 0.2s ease;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(8, 14, 26, 0.92) !important;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* Helper classes */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.subtle-text {
+  color: #94a3b8;
+}
+
+.dark-card-hover {
+  transition: all 0.25s ease;
+}
+
+.dark-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(178, 160, 219, 0.28);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
 }
