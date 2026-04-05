@@ -7,6 +7,7 @@ import jsPDF from "jspdf";
 type ActionItem = {
   task: string;
   owner: string;
+  deadline?: string;
 };
 
 type Meeting = {
@@ -95,12 +96,21 @@ export default function MeetingDetailsPage() {
         }
       );
 
-      const data = await res.json();
+      const rawText = await res.text();
+
+      let data: any = null;
+
+      try {
+        data = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        // fallback to raw text
+      }
 
       const aiText =
         data?.answer ||
         data?.output ||
         data?.text ||
+        rawText ||
         "I couldn't find a valid answer in this meeting transcript.";
 
       const aiMessage: ChatMessage = {
@@ -160,12 +170,52 @@ export default function MeetingDetailsPage() {
       : cleanTranscript;
   };
 
+  const getSentimentMeta = (sentiment?: string | null) => {
+    const value = sentiment?.toLowerCase();
+
+    if (value === "positive") {
+      return {
+        label: "Positive",
+        color: "bg-[#BBF7D0]",
+        text: "text-[#BBF7D0]",
+        width: "80%",
+        description:
+          "This meeting had a generally positive tone with agreement and alignment.",
+      };
+    }
+
+    if (value === "negative") {
+      return {
+        label: "Negative",
+        color: "bg-[#FCA5A5]",
+        text: "text-[#FCA5A5]",
+        width: "30%",
+        description:
+          "This meeting showed tension, blockers, or disagreement in discussion.",
+      };
+    }
+
+    return {
+      label: "Neutral",
+      color: "bg-[#FDE68A]",
+      text: "text-[#FDE68A]",
+      width: "50%",
+      description:
+        "This meeting stayed balanced without strong positive or negative tone.",
+    };
+  };
+
   const exportCSV = () => {
     if (!meeting) return;
 
     const decisions = parseDecisions().join(" | ");
     const actions = parseActions()
-      .map((a) => `${a.task} (Owner: ${a.owner})`)
+      .map(
+        (a) =>
+          `${a.task} (Owner: ${a.owner}, Deadline: ${
+            a.deadline || "Not specified"
+          })`
+      )
       .join(" | ");
 
     const csvContent = [
@@ -206,6 +256,11 @@ export default function MeetingDetailsPage() {
       const lines = doc.splitTextToSize(value || "-", 180);
       doc.text(lines, 10, y);
       y += lines.length * 7 + 5;
+
+      if (y > 270) {
+        doc.addPage();
+        y = 15;
+      }
     };
 
     addText("Project Name:", meeting.project_name || "Untitled Project");
@@ -216,7 +271,12 @@ export default function MeetingDetailsPage() {
     addText(
       "Action Items:",
       parseActions()
-        .map((a) => `${a.task} (Owner: ${a.owner})`)
+        .map(
+          (a) =>
+            `${a.task} (Owner: ${a.owner}, Deadline: ${
+              a.deadline || "Not specified"
+            })`
+        )
         .join("\n")
     );
     addText("Transcript:", meeting.transcript || "No transcript");
@@ -226,7 +286,7 @@ export default function MeetingDetailsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#020617] text-white p-6">
+      <main className="min-h-screen bg-[#1C1F24] text-[#F8FAFC] p-6">
         Loading meeting...
       </main>
     );
@@ -234,7 +294,7 @@ export default function MeetingDetailsPage() {
 
   if (!meeting) {
     return (
-      <main className="min-h-screen bg-[#020617] text-white p-6">
+      <main className="min-h-screen bg-[#1C1F24] text-[#F8FAFC] p-6">
         Meeting not found
       </main>
     );
@@ -242,31 +302,31 @@ export default function MeetingDetailsPage() {
 
   const decisions = parseDecisions();
   const actions = parseActions();
+  const sentiment = getSentimentMeta(meeting.sentiment);
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white p-6">
+    <main className="min-h-screen bg-[#1C1F24] text-[#F8FAFC] p-6">
       <div className="max-w-6xl mx-auto">
-
         {/* Back Button */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <button
             onClick={() => router.push("/dashboard")}
-            className="text-sm px-4 py-2 rounded-lg bg-[#111827] border border-slate-700 hover:bg-[#1F2937] transition"
+            className="premium-button-ghost rounded-lg px-4 py-2 text-sm transition"
           >
-            ← Back to Dashboard
+            Back to Dashboard
           </button>
 
           <div className="flex gap-3">
             <button
               onClick={exportCSV}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition"
+              className="premium-button rounded-lg px-4 py-2 transition"
             >
               Export CSV
             </button>
 
             <button
               onClick={exportPDF}
-              className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 transition"
+              className="premium-button rounded-lg px-4 py-2 transition"
             >
               Export PDF
             </button>
@@ -274,45 +334,59 @@ export default function MeetingDetailsPage() {
         </div>
 
         {/* Header */}
-        <div className="bg-[#0B1220] border border-slate-700/70 p-6 rounded-2xl mb-6 shadow-lg">
-          <h1 className="text-3xl font-bold mb-2 text-slate-100">
+        <div className="premium-surface mb-6 rounded-2xl p-6 shadow-xl">
+          <h1 className="mb-2 text-3xl font-bold">
             {meeting.meeting_title || "Untitled Meeting"}
           </h1>
-          <p className="text-slate-300 mb-1">
+          <p className="mb-1 text-[#C1C8D0]">
             <span className="font-semibold text-white">Project:</span>{" "}
             {meeting.project_name || "Untitled Project"}
           </p>
-          <p className="text-slate-300 mb-1">
+          <p className="mb-1 text-[#C1C8D0]">
             <span className="font-semibold text-white">Sentiment:</span>{" "}
             {meeting.sentiment || "Unknown"}
           </p>
-          <p className="text-slate-400 text-sm">
+          <p className="text-sm text-[#98A2B3]">
             {new Date(meeting.created_at).toLocaleString()}
           </p>
         </div>
 
         {/* Summary */}
-        <div className="bg-[#0B1220] border border-slate-700/70 rounded-2xl p-6 shadow-lg mb-6">
-          <h2 className="text-2xl font-bold mb-3 text-violet-300">
-            AI Summary
-          </h2>
-          <p className="text-slate-200 leading-8 text-[15px]">
-            {getSummary()}
-          </p>
+        <div className="premium-surface mb-6 rounded-2xl p-6 shadow-xl">
+          <h2 className="text-2xl font-bold mb-3 text-white">AI Summary</h2>
+          <p className="text-[15px] leading-8 text-[#C1C8D0]">{getSummary()}</p>
+        </div>
+
+        {/* Sentiment Visualization */}
+        <div className="premium-surface mb-6 rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Meeting Sentiment</h2>
+            <span
+              className={`text-sm font-semibold px-3 py-1 rounded-full border border-white/15 bg-white/5 ${sentiment.text}`}
+            >
+              {sentiment.label}
+            </span>
+          </div>
+
+          <div className="mb-4 h-4 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className={`h-full ${sentiment.color} transition-all duration-700`}
+              style={{ width: sentiment.width }}
+            />
+          </div>
+
+          <p className="leading-7 text-[#C1C8D0]">{sentiment.description}</p>
         </div>
 
         {/* Top Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-
           {/* AI Chat */}
-          <div className="bg-[#0B1220] border border-slate-700/70 rounded-2xl p-6 shadow-lg">
-            <h2 className="text-2xl font-bold mb-4 text-slate-100">
-              Ask AI About This Meeting
-            </h2>
+          <div className="premium-surface rounded-2xl p-6 shadow-xl">
+            <h2 className="text-2xl font-bold mb-4">Ask AI About This Meeting</h2>
 
-            <div className="h-[420px] overflow-y-auto bg-[#111827] rounded-xl border border-slate-700 p-4 space-y-4 mb-4">
+            <div className="premium-panel mb-4 h-[420px] space-y-4 overflow-y-auto rounded-xl p-4">
               {chat.length === 0 && !aiLoading && (
-                <div className="text-slate-400 text-sm leading-7">
+                <div className="text-sm leading-7 text-[#98A2B3]">
                   Try asking:
                   <ul className="list-disc pl-5 mt-2 space-y-1">
                     <li>What were the main decisions?</li>
@@ -333,8 +407,8 @@ export default function MeetingDetailsPage() {
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-md ${
                       msg.role === "user"
-                        ? "bg-violet-600 text-white rounded-br-sm"
-                        : "bg-slate-800 text-slate-100 rounded-bl-sm"
+                        ? "bg-white text-slate-900 rounded-br-sm"
+                        : "premium-panel text-[#F8FAFC] rounded-bl-sm"
                     }`}
                   >
                     <p className="text-xs font-semibold mb-1 opacity-80">
@@ -347,7 +421,7 @@ export default function MeetingDetailsPage() {
 
               {aiLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-800 text-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 max-w-[80%] shadow-md">
+                  <div className="premium-panel max-w-[80%] rounded-2xl rounded-bl-sm px-4 py-3 text-[#F8FAFC] shadow-md">
                     <p className="text-xs font-semibold mb-1 opacity-80">
                       AI Assistant
                     </p>
@@ -367,13 +441,13 @@ export default function MeetingDetailsPage() {
                   if (e.key === "Enter") askAI();
                 }}
                 placeholder="Ask something about this meeting..."
-                className="flex-1 p-3 rounded-xl bg-[#111827] border border-slate-700 outline-none focus:ring-2 focus:ring-violet-500 text-white placeholder:text-slate-500"
+                className="premium-input flex-1 rounded-xl p-3 outline-none"
               />
 
               <button
                 onClick={askAI}
                 disabled={aiLoading}
-                className="bg-violet-600 px-5 py-3 rounded-xl font-semibold hover:bg-violet-500 transition disabled:opacity-50"
+                className="premium-button rounded-xl px-5 py-3 font-semibold transition disabled:opacity-50"
               >
                 {aiLoading ? "..." : "Ask AI"}
               </button>
@@ -382,55 +456,105 @@ export default function MeetingDetailsPage() {
 
           {/* Insights */}
           <div className="space-y-6">
+            {/* Decisions Table */}
+            <div className="premium-surface rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">Decisions</h2>
+                <span className="rounded-full border border-[#434C58] bg-white/10 px-3 py-1 text-xs text-white">
+                  {decisions.length} Found
+                </span>
+              </div>
 
-            {/* Decisions */}
-            <div className="bg-[#0B1220] border border-slate-700/70 rounded-2xl p-6 shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-slate-100">Decisions</h2>
               {decisions.length > 0 ? (
-                <ul className="space-y-3">
-                  {decisions.map((decision, index) => (
-                    <li
-                      key={`${decision}-${index}`}
-                      className="bg-[#111827] rounded-xl p-3 text-slate-200 border border-slate-700/50"
-                    >
-                      • {decision}
-                    </li>
-                  ))}
-                </ul>
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-white/5 text-[#C1C8D0] uppercase tracking-wide text-xs">
+                      <tr>
+                        <th className="px-4 py-3 border-b border-white/10 w-16">#</th>
+                        <th className="px-4 py-3 border-b border-white/10">Decision</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {decisions.map((decision, index) => (
+                        <tr
+                          key={`${decision}-${index}`}
+                          className="hover:bg-white/5 transition"
+                        >
+                          <td className="border-b border-white/5 px-4 py-4 font-medium text-[#98A2B3]">
+                            {index + 1}
+                          </td>
+                          <td className="border-b border-white/5 px-4 py-4 text-[#C1C8D0]">
+                            {decision}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
-                <p className="text-slate-400">No decisions extracted.</p>
+                <div className="rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-center text-[#98A2B3]">
+                  No decisions extracted.
+                </div>
               )}
             </div>
 
-            {/* Action Items */}
-            <div className="bg-[#0B1220] border border-slate-700/70 rounded-2xl p-6 shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-slate-100">Action Items</h2>
+            {/* Action Items Table */}
+            <div className="premium-surface rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">Action Items</h2>
+                <span className="rounded-full border border-[#434C58] bg-white/10 px-3 py-1 text-xs text-white">
+                  {actions.length} Tasks
+                </span>
+              </div>
+
               {actions.length > 0 ? (
-                <div className="space-y-3">
-                  {actions.map((item, index) => (
-                    <div
-                      key={`${item.task}-${item.owner}-${index}`}
-                      className="bg-[#111827] rounded-xl p-4 border border-slate-700/50"
-                    >
-                      <p className="font-medium text-white">{item.task}</p>
-                      <p className="text-sm text-slate-400 mt-1">
-                        Owner: {item.owner || "Unassigned"}
-                      </p>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-white/5 text-[#C1C8D0] uppercase tracking-wide text-xs">
+                      <tr>
+                        <th className="px-4 py-3 border-b border-white/10 w-16">#</th>
+                        <th className="px-4 py-3 border-b border-white/10">Task</th>
+                        <th className="px-4 py-3 border-b border-white/10">Owner</th>
+                        <th className="px-4 py-3 border-b border-white/10">Deadline</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {actions.map((item, index) => (
+                        <tr
+                          key={`${item.task}-${item.owner}-${index}`}
+                          className="hover:bg-white/5 transition"
+                        >
+                          <td className="border-b border-white/5 px-4 py-4 font-medium text-[#98A2B3]">
+                            {index + 1}
+                          </td>
+                          <td className="border-b border-white/5 px-4 py-4 font-medium text-[#C1C8D0]">
+                            {item.task || "No task found"}
+                          </td>
+                          <td className="border-b border-white/5 px-4 py-4 text-[#C1C8D0]">
+                            {item.owner || "Unassigned"}
+                          </td>
+                          <td className="border-b border-white/5 px-4 py-4 text-[#98A2B3]">
+                            {item.deadline || "Not specified"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
-                <p className="text-slate-400">No action items extracted.</p>
+                <div className="rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-center text-[#98A2B3]">
+                  No action items extracted.
+                </div>
               )}
             </div>
           </div>
         </div>
 
         {/* Transcript */}
-        <div className="bg-[#0B1220] border border-slate-700/70 rounded-2xl p-6 shadow-lg">
-          <h2 className="text-2xl font-bold mb-4 text-slate-100">Transcript</h2>
-          <div className="bg-[#111827] border border-slate-700 rounded-xl p-4 max-h-[500px] overflow-y-auto">
-            <p className="text-slate-300 whitespace-pre-wrap leading-8">
+        <div className="premium-surface rounded-2xl p-6 shadow-xl">
+          <h2 className="text-2xl font-bold mb-4">Transcript</h2>
+          <div className="premium-panel max-h-[500px] overflow-y-auto rounded-xl p-4">
+            <p className="whitespace-pre-wrap leading-8 text-[#C1C8D0]">
               {meeting.transcript || "No transcript available."}
             </p>
           </div>

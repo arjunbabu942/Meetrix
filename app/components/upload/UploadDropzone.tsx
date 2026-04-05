@@ -56,7 +56,7 @@ export default function UploadDropzone() {
           placeholder="Project Name"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
-          className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
+          className="premium-input rounded-2xl px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
         />
 
         <input
@@ -64,7 +64,7 @@ export default function UploadDropzone() {
           placeholder="Meeting Title"
           value={meetingTitle}
           onChange={(e) => setMeetingTitle(e.target.value)}
-          className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
+          className="premium-input rounded-2xl px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
         />
 
         <textarea
@@ -72,16 +72,16 @@ export default function UploadDropzone() {
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
           rows={10}
-          className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
+          className="premium-input rounded-2xl px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
         />
 
         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2">
-            <FileText size={16} className="text-blue-400" />
+          <div className="premium-button-ghost flex items-center gap-2 rounded-full px-4 py-2">
+            <FileText size={16} className="text-slate-300" />
             <span>.txt supported</span>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2">
-            <Subtitles size={16} className="text-purple-400" />
+          <div className="premium-button-ghost flex items-center gap-2 rounded-full px-4 py-2">
+            <Subtitles size={16} className="text-slate-300" />
             <span>.vtt supported</span>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function UploadDropzone() {
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-500 transition-all disabled:opacity-50"
+          className="premium-button rounded-2xl px-6 py-3 text-sm font-medium transition-all disabled:opacity-50"
         >
           {loading ? "Sending..." : "Send to Meetrix"}
         </button>

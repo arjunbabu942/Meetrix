@@ -10,7 +10,7 @@ interface DecisionCardProps {
 export default function DecisionCard({ text }: DecisionCardProps) {
   return (
     <Card className="flex items-start gap-3">
-      <div className="mt-1 rounded-full bg-emerald-500/20 p-2 text-emerald-400">
+      <div className="mt-1 rounded-full bg-slate-700/70 p-2 text-slate-300 border border-white/15">
         <CheckCircle2 size={18} />
       </div>
       <p className="text-slate-200">{text}</p>

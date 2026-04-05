@@ -20,7 +20,7 @@ export default function UploadedFileCard({
     <Card className="space-y-4">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-blue-600/20 p-3 text-blue-400">
+          <div className="premium-panel rounded-xl p-3 text-slate-300">
             <FileText size={20} />
           </div>
           <div>
@@ -32,15 +32,15 @@ export default function UploadedFileCard({
 
       <div className="grid gap-3 sm:grid-cols-3 text-sm">
         <div className="flex items-center gap-2 text-slate-300">
-          <CalendarDays size={16} className="text-blue-400" />
+          <CalendarDays size={16} className="text-slate-300" />
           <span>{meetingDate}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-300">
-          <Users size={16} className="text-purple-400" />
+          <Users size={16} className="text-slate-300" />
           <span>{speakers} speakers</span>
         </div>
         <div className="flex items-center gap-2 text-slate-300">
-          <FileBarChart2 size={16} className="text-emerald-400" />
+          <FileBarChart2 size={16} className="text-slate-300" />
           <span>{words} words</span>
         </div>
       </div>

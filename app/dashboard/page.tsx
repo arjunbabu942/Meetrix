@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -11,6 +11,9 @@ import {
   BrainCircuit,
   ArrowRight,
   Sparkles,
+  MessageSquareText,
+  Loader2,
+  FolderOpen,
 } from "lucide-react";
 
 type Meeting = {
@@ -19,9 +22,14 @@ type Meeting = {
   meeting_title: string;
   transcript: string;
   decisions?: string[] | string | null;
-  action_items?: { task: string; owner: string }[] | string | null;
+  action_items?: { task: string; owner: string; deadline?: string }[] | string | null;
   sentiment?: string | null;
   created_at: string;
+};
+
+type ChatMessage = {
+  role: "user" | "ai";
+  text: string;
 };
 
 export default function DashboardPage() {
@@ -30,6 +38,12 @@ export default function DashboardPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Cross-meeting AI Chat
+  const [question, setQuestion] = useState("");
+  const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchMeetings = async () => {
@@ -71,6 +85,10 @@ export default function DashboardPage() {
     fetchMeetings();
   }, []);
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat, aiLoading]);
+
   const filteredMeetings = useMemo(() => {
     return meetings.filter((meeting) => {
       const title = meeting.meeting_title?.toLowerCase() || "";
@@ -84,11 +102,30 @@ export default function DashboardPage() {
     });
   }, [meetings, search]);
 
+  // ✅ PROJECT GROUPING
+  const groupedMeetings = useMemo(() => {
+    const groups: Record<string, Meeting[]> = {};
+
+    filteredMeetings.forEach((meeting) => {
+      const project = meeting.project_name?.trim() || "Untitled Project";
+
+      if (!groups[project]) {
+        groups[project] = [];
+      }
+
+      groups[project].push(meeting);
+    });
+
+    return groups;
+  }, [filteredMeetings]);
+
   const stats = useMemo(() => {
     const totalMeetings = meetings.length;
 
     const totalDecisions = meetings.reduce((count, meeting) => {
-      if (Array.isArray(meeting.decisions)) return count + meeting.decisions.length;
+      if (Array.isArray(meeting.decisions)) {
+        return count + meeting.decisions.length;
+      }
 
       if (typeof meeting.decisions === "string") {
         try {
@@ -103,8 +140,9 @@ export default function DashboardPage() {
     }, 0);
 
     const totalActions = meetings.reduce((count, meeting) => {
-      if (Array.isArray(meeting.action_items))
+      if (Array.isArray(meeting.action_items)) {
         return count + meeting.action_items.length;
+      }
 
       if (typeof meeting.action_items === "string") {
         try {
@@ -134,23 +172,99 @@ export default function DashboardPage() {
     const value = sentiment?.toLowerCase();
 
     if (value === "positive") {
-      return "bg-emerald-500/10 text-emerald-300 border border-emerald-400/20";
+      return "bg-white/10 text-white border border-white/15";
     }
 
     if (value === "negative") {
-      return "bg-red-500/10 text-red-300 border border-red-400/20";
+      return "bg-white/10 text-white border border-white/15";
     }
 
-    return "bg-amber-500/10 text-amber-300 border border-amber-400/20";
+    return "bg-white/10 text-white border border-white/15";
+  };
+
+  // Cross-meeting AI
+  const askGlobalAI = async (customQuestion?: string) => {
+    const currentQuestion = (customQuestion || question).trim();
+
+    if (!currentQuestion || meetings.length === 0 || aiLoading) return;
+
+    const userMessage: ChatMessage = {
+      role: "user",
+      text: currentQuestion,
+    };
+
+    setChat((prev) => [...prev, userMessage]);
+    setQuestion("");
+    setAiLoading(true);
+
+    try {
+      const combinedTranscript = meetings
+        .map(
+          (m) =>
+            `Meeting: ${m.meeting_title}\nProject: ${m.project_name}\nTranscript:\n${m.transcript}`
+        )
+        .join("\n\n----------------------\n\n");
+
+      const res = await fetch(
+        "https://arjunbabu.app.n8n.cloud/webhook/llm-chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            transcript: combinedTranscript,
+            question: currentQuestion,
+          }),
+        }
+      );
+
+      const rawText = await res.text();
+
+      console.log("GLOBAL AI RAW RESPONSE:", rawText);
+
+      let data: any = null;
+
+      try {
+        data = rawText ? JSON.parse(rawText) : null;
+      } catch (err) {
+        console.warn("AI response is not valid JSON, using raw text instead.");
+      }
+
+      const aiText =
+        data?.answer ||
+        data?.output ||
+        data?.text ||
+        rawText ||
+        "I couldn't find a strong answer across your uploaded meetings.";
+
+      const aiMessage: ChatMessage = {
+        role: "ai",
+        text: aiText,
+      };
+
+      setChat((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      console.error(err);
+      setChat((prev) => [
+        ...prev,
+        {
+          role: "ai",
+          text: "Something went wrong while getting the AI response.",
+        },
+      ]);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
-    <main className="min-h-screen bg-transparent text-white px-4 md:px-8 py-8">
+    <main className="min-h-screen bg-[#1C1F24] px-4 py-8 text-[#F8FAFC] md:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Top Header */}
+        {/* Header */}
         <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-400/20 text-violet-300 px-4 py-2 rounded-full text-sm mb-4">
+            <div className="premium-label mb-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white">
               <Sparkles size={16} />
               Meeting Intelligence Hub
             </div>
@@ -158,20 +272,19 @@ export default function DashboardPage() {
             <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
               Dashboard
             </h1>
-            <p className="text-slate-400 mt-3 text-base md:text-lg max-w-2xl">
+            <p className="mt-3 max-w-2xl text-base text-[#C1C8D0] md:text-lg">
               Search transcripts, review decisions, track action items, and
-              revisit meeting intelligence in one place.
+              ask AI across all uploaded meetings.
             </p>
           </div>
 
-          <div className="glass-card rounded-3xl p-5 w-full lg:w-[360px]">
+          <div className="premium-surface w-full rounded-3xl p-5 lg:w-[360px]">
             <div className="flex items-center gap-3 mb-3">
-              <BrainCircuit className="text-violet-300" />
+              <BrainCircuit className="text-white" />
               <h2 className="text-lg font-semibold">AI Ready</h2>
             </div>
-            <p className="text-slate-300 text-sm leading-6">
-              Your meeting assistant can extract decisions, action items, and
-              answer questions directly from transcripts.
+            <p className="text-sm leading-6 text-[#C1C8D0]">
+              Your meeting assistant can extract decisions, action items, and answer questions directly from transcripts.
             </p>
           </div>
         </div>
@@ -188,7 +301,7 @@ export default function DashboardPage() {
               placeholder="Search by meeting title, project, or transcript..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#0B1220]/90 border border-slate-700/50 rounded-2xl pl-14 pr-5 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition"
+              className="premium-input w-full rounded-2xl py-4 pl-14 pr-5 text-[#F8FAFC] placeholder:text-[#98A2B3] transition focus:outline-none"
             />
           </div>
         </div>
@@ -198,34 +311,139 @@ export default function DashboardPage() {
           <StatCard
             title="Total Meetings"
             value={stats.totalMeetings}
-            icon={<CalendarDays className="text-violet-300" />}
+            icon={<CalendarDays className="text-white" />}
+            glow="from-white/10 to-white/0"
           />
           <StatCard
             title="Decisions Extracted"
             value={stats.totalDecisions}
-            icon={<CheckCircle2 className="text-emerald-300" />}
+            icon={<CheckCircle2 className="text-white" />}
+            glow="from-white/10 to-white/0"
           />
           <StatCard
             title="Action Items"
             value={stats.totalActions}
-            icon={<Clock3 className="text-amber-300" />}
+            icon={<Clock3 className="text-white" />}
+            glow="from-white/10 to-white/0"
           />
           <StatCard
             title="Positive Meetings"
             value={stats.positiveCount}
-            icon={<FolderKanban className="text-cyan-300" />}
+            icon={<FolderKanban className="text-white" />}
+            glow="from-white/10 to-white/0"
           />
         </div>
 
-        {/* Meetings */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold">Recent Meetings</h2>
-            <p className="text-slate-400 mt-1">
-              Open any meeting to explore transcript insights and ask AI
-              questions.
-            </p>
+        {/* Global AI Chat */}
+        <div className="premium-surface mb-10 rounded-3xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <MessageSquareText className="text-white" />
+            <h2 className="text-2xl font-bold">Ask AI Across All Meetings</h2>
           </div>
+
+          <p className="mb-5 text-[#98A2B3]">
+            Ask cross-meeting questions and let AI search through all uploaded transcripts.
+          </p>
+
+          {/* Suggested prompts */}
+          <div className="flex flex-wrap gap-3 mb-5">
+            {[
+              "Summarize all uploaded meetings",
+              "What were the common blockers discussed?",
+              "Why was the API launch delayed?",
+              "What action items were repeated across meetings?",
+            ].map((prompt) => (
+              <button
+                key={prompt}
+                onClick={() => askGlobalAI(prompt)}
+                className="premium-button-ghost rounded-full px-4 py-2 text-sm text-[#F8FAFC] transition"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+
+          {/* Chat Window */}
+          <div className="premium-panel mb-4 h-[360px] space-y-4 overflow-y-auto rounded-2xl p-4">
+            {chat.length === 0 && !aiLoading && (
+              <div className="text-sm leading-7 text-slate-400">
+                Try asking:
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>What decisions were repeated across meetings?</li>
+                  <li>What concerns came up most often?</li>
+                  <li>Summarize all meetings in one paragraph.</li>
+                  <li>Which topics caused the most disagreement?</li>
+                </ul>
+              </div>
+            )}
+
+            {chat.map((msg, index) => (
+              <div
+                key={`${msg.role}-${index}-${msg.text.slice(0, 20)}`}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-md ${
+                    msg.role === "user"
+                      ? "bg-white text-slate-900 rounded-br-sm"
+                      : "bg-[#343741] text-slate-100 rounded-bl-sm"
+                  }`}
+                >
+                  <p className="text-xs font-semibold mb-1 opacity-80">
+                    {msg.role === "user" ? "You" : "Meetrix AI"}
+                  </p>
+                  <p className="whitespace-pre-wrap leading-7">{msg.text}</p>
+                </div>
+              </div>
+            ))}
+
+            {aiLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-[#343741] px-4 py-3 text-slate-100 shadow-md">
+                  <p className="text-xs font-semibold mb-1 opacity-80">
+                    Meetrix AI
+                  </p>
+                  <p className="inline-flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    Thinking across meetings...
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className="flex gap-3">
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") askGlobalAI();
+              }}
+              placeholder="Ask something across all meetings..."
+              className="premium-input flex-1 rounded-2xl px-4 py-3 text-[#F8FAFC] placeholder:text-[#98A2B3] focus:outline-none"
+            />
+
+            <button
+              onClick={() => askGlobalAI()}
+              disabled={aiLoading}
+              className="premium-button rounded-2xl px-5 py-3 font-semibold transition disabled:opacity-50"
+            >
+              Ask AI
+            </button>
+          </div>
+        </div>
+
+        {/* Projects & Meetings */}
+        <div className="mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold">Projects & Meetings</h2>
+          <p className="mt-1 text-[#98A2B3]">
+            Meetings are grouped by project for easier navigation.
+          </p>
         </div>
 
         {loading ? (
@@ -233,66 +451,86 @@ export default function DashboardPage() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="rounded-3xl border border-slate-800/70 bg-[#0F172A]/70 p-6 animate-pulse"
+                className="premium-surface animate-pulse rounded-3xl p-6"
               >
-                <div className="h-6 w-1/2 bg-slate-800 rounded mb-4" />
-                <div className="h-4 w-1/3 bg-slate-800 rounded mb-3" />
-                <div className="h-4 w-2/3 bg-slate-800 rounded mb-6" />
-                <div className="h-10 w-full bg-slate-800 rounded-2xl" />
+                <div className="mb-4 h-6 w-1/2 rounded bg-white/10" />
+                <div className="mb-3 h-4 w-1/3 rounded bg-white/10" />
+                <div className="mb-6 h-4 w-2/3 rounded bg-white/10" />
+                <div className="h-10 w-full rounded-2xl bg-white/10" />
               </div>
             ))}
           </div>
-        ) : filteredMeetings.length === 0 ? (
-          <div className="glass-card rounded-3xl p-10 text-center">
+        ) : Object.keys(groupedMeetings).length === 0 ? (
+          <div className="premium-surface rounded-3xl p-10 text-center">
             <h3 className="text-2xl font-semibold mb-2">No meetings found</h3>
-            <p className="text-slate-400">
+            <p className="text-[#98A2B3]">
               Try a different search or upload more meeting transcripts.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredMeetings.map((meeting) => (
-              <div
-                key={meeting.id}
-                className="glass-card dark-card-hover rounded-3xl p-6"
-              >
-                <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="space-y-10">
+            {Object.entries(groupedMeetings).map(([projectName, projectMeetings]) => (
+              <div key={projectName}>
+                {/* Project Header */}
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="premium-panel flex h-12 w-12 items-center justify-center rounded-2xl">
+                    <FolderOpen className="text-white" size={22} />
+                  </div>
                   <div>
-                    <h3 className="text-2xl font-bold leading-tight mb-2 text-slate-100">
-                      {meeting.meeting_title || "Untitled Meeting"}
-                    </h3>
-                    <p className="text-slate-400 text-sm">
-                      {meeting.project_name || "Unknown Project"}
+                    <h3 className="text-2xl font-bold text-white">{projectName}</h3>
+                    <p className="text-sm text-[#98A2B3]">
+                      {projectMeetings.length} meeting{projectMeetings.length > 1 ? "s" : ""}
                     </p>
                   </div>
-
-                  <span
-                    className={`text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap ${getSentimentStyle(
-                      meeting.sentiment
-                    )}`}
-                  >
-                    {meeting.sentiment || "Neutral"}
-                  </span>
                 </div>
 
-                <p className="text-slate-300 leading-7 text-sm md:text-base line-clamp-4 mb-6">
-                  {meeting.transcript || "No transcript available."}
-                </p>
+                {/* Meetings under each project */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {projectMeetings.map((meeting) => (
+                    <div
+                      key={meeting.id}
+                      className="premium-surface group rounded-3xl p-6 transition-all duration-300 hover:border-white/45 hover:shadow-2xl hover:shadow-black/20"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-5">
+                        <div>
+                          <h3 className="mb-2 text-2xl font-bold leading-tight transition group-hover:text-white">
+                            {meeting.meeting_title || "Untitled Meeting"}
+                          </h3>
+                          <p className="text-sm text-[#98A2B3]">
+                            {meeting.project_name || "Unknown Project"}
+                          </p>
+                        </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-800/70">
-                  <div className="text-sm text-slate-500">
-                    {meeting.created_at
-                      ? new Date(meeting.created_at).toLocaleString()
-                      : "No date"}
-                  </div>
+                        <span
+                          className={`text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap ${getSentimentStyle(
+                            meeting.sentiment
+                          )}`}
+                        >
+                          {meeting.sentiment || "Neutral"}
+                        </span>
+                      </div>
 
-                  <button
-                    onClick={() => router.push(`/meetings/${meeting.id}`)}
-                    className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 px-5 py-2.5 rounded-xl font-medium transition"
-                  >
-                    View Details
-                    <ArrowRight size={16} />
-                  </button>
+                      <p className="mb-6 line-clamp-4 text-sm leading-7 text-[#C1C8D0] md:text-base">
+                        {meeting.transcript || "No transcript available."}
+                      </p>
+
+                      <div className="flex items-center justify-between border-t border-white/10 pt-4">
+                        <div className="text-sm text-[#98A2B3]">
+                          {meeting.created_at
+                            ? new Date(meeting.created_at).toLocaleString()
+                            : "No date"}
+                        </div>
+
+                        <button
+                          onClick={() => router.push(`/meetings/${meeting.id}`)}
+                          className="premium-button inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-medium transition"
+                        >
+                          View Details
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
@@ -307,20 +545,24 @@ function StatCard({
   title,
   value,
   icon,
+  glow,
 }: {
   title: string;
   value: number;
   icon: React.ReactNode;
+  glow: string;
 }) {
   return (
-    <div className="glass-card rounded-3xl p-6">
+    <div
+      className={`premium-surface rounded-3xl bg-gradient-to-br ${glow} p-6 shadow-lg`}
+    >
       <div className="flex items-center justify-between mb-5">
-        <div className="w-12 h-12 rounded-2xl bg-[#111827] border border-slate-700/60 flex items-center justify-center">
+        <div className="premium-panel flex h-12 w-12 items-center justify-center rounded-2xl">
           {icon}
         </div>
       </div>
 
-      <h3 className="text-slate-400 text-sm mb-2">{title}</h3>
+      <h3 className="mb-2 text-sm text-[#98A2B3]">{title}</h3>
       <p className="text-4xl font-bold">{value}</p>
     </div>
   );

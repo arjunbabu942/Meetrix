@@ -25,7 +25,7 @@ export default function ActionItemsTable() {
     <Card className="overflow-hidden p-0">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/5 text-slate-400">
+          <thead className="border-b border-white/15 bg-[#1d2026]/70 text-slate-400">
             <tr>
               <th className="px-6 py-4 font-medium">Owner</th>
               <th className="px-6 py-4 font-medium">Task</th>
@@ -36,7 +36,7 @@ export default function ActionItemsTable() {
             {actionItems.map((item, index) => (
               <tr
                 key={index}
-                className="border-b border-white/5 text-slate-200 last:border-none"
+                className="border-b border-white/15 text-slate-200 last:border-none"
               >
                 <td className="px-6 py-4">{item.owner}</td>
                 <td className="px-6 py-4">{item.task}</td>

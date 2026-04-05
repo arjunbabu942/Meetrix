@@ -36,11 +36,11 @@ export default function StatsCard({
         <p className="text-sm text-slate-400">{title}</p>
         <h3 className="mt-2 text-3xl font-bold text-white">{value}</h3>
         {change && (
-          <p className="mt-2 text-sm text-emerald-400">{change}</p>
+          <p className="mt-2 text-sm text-slate-400">{change}</p>
         )}
       </div>
 
-      <div className="rounded-2xl bg-blue-600/20 p-4 text-blue-400">
+      <div className="premium-panel rounded-2xl p-4 text-slate-300">
         <Icon size={24} />
       </div>
     </Card>
