@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MEETRIX— AI Meeting Intelligence Hub
 
-## Getting Started
+## The Problem
 
-First, run the development server:
+Organizations conduct many internal and client meetings every week, producing long transcript files that are difficult to review manually. Important decisions, action items, concerns, and follow-ups often get buried inside pages of dialogue, leading to confusion, repeated discussions, and wasted time.
 
+## The Solution
+
+Meetrix is an AI-powered Meeting Intelligence Hub that transforms raw meeting transcripts into structured, actionable insights. It allows users to upload transcripts, extract summaries, decisions, action items, and sentiment, and ask natural language questions across one or multiple meetings.
+
+## Key Features
+
+- Multi-transcript upload interface
+- Support for transcript file ingestion
+- AI-generated meeting summaries
+- Decision extraction
+- Action item extraction with owner and deadline
+- Structured table view for decisions and action items
+- Cross-meeting AI chatbot
+- Meeting-specific AI chatbot
+- Sentiment tagging and analytics
+- Project-wise meeting grouping
+- Search across meetings
+- CSV and PDF export
+- Hosted web deployment
+
+## Tech Stack
+
+### Frontend
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+### Backend / Workflow Automation
+- n8n
+- Webhooks
+
+### AI / LLM
+- Groq API
+
+### Database / Storage
+- Supabase
+
+### Deployment
+- Vercel
+https://meetrix-nine.vercel.app/
+
+## Setup Instructions
+
+### 1. Clone the repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+git clone https://github.com/arjunbabu942/Meetrix.git
+cd Meetrix
+ 
+### 2. install dependencies 
+npm install
+ 
+### 3. run project loacally
+ npm run dev
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+###  4.open in browser
+  https://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### HOW IT WORKS
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+1. Users upload one or more meeting transcript files.
+2. The system processes and stores each meeting.
+3. Meetrix extracts:
+   - Summary
+   - Decisions
+   - Action Items
+   - Sentiment
+4. Users can open each meeting to inspect structured outputs.
+5. Users can ask AI questions within a meeting or across all meetings.
 
-To learn more about Next.js, take a look at the following resources:
+## Example Questions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Why was the API launch delayed?
+- What blockers were discussed across meetings?
+- Who is responsible for the homepage redesign?
+- What decisions were made in the finance review meeting?
